@@ -34,6 +34,12 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
 
+      - name: Tag Docker image
+        run: |
+          docker pull ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.IMAGE_NAME }}:v${{ github.event.inputs.version }}
+          docker push ${{ env.IMAGE_NAME }}:v${{ github.event.inputs.version }}
+
       - name: Change version
         run: |
           mv deno.json deno.json.bak
@@ -44,12 +50,6 @@ jobs:
           git add deno.json
           git commit -m "${{ github.event.inputs.version }}"
           git tag "v${{ github.event.inputs.version }}"
-
-      - name: Tag Docker image
-        run: |
-          docker pull ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.IMAGE_NAME }}:v${{ github.event.inputs.version }}
-          docker push ${{ env.IMAGE_NAME }}:v${{ github.event.inputs.version }}
 
       - name: Push release commit
         run: |
