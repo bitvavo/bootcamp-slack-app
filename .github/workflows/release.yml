@@ -45,11 +45,17 @@ jobs:
           git commit -m "${{ github.event.inputs.version }}"
           git tag "v${{ github.event.inputs.version }}"
 
-      - name: Tag Docker image
-        run: |
-          docker pull ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.IMAGE_NAME }}:v${{ github.event.inputs.version }}
-          docker push ${{ env.IMAGE_NAME }}:v${{ github.event.inputs.version }}
+      - uses: bitvavo/pipelines/actions/container-build@container-build/v1
+        with:
+          image: "${{ env.IMAGE_NAME }}"
+          context: "."
+          push: true
+          file: "Dockerfile"
+          tags: "v${{ github.event.inputs.version }}"
+          ghcr-username: ${{ github.actor }}
+          ghcr-token: ${{ secrets.GITHUB_TOKEN }}
+          wiz-client-id: ${{ secrets.WIZ_CLIENT_ID }}
+          wiz-client-secret: ${{ secrets.WIZ_CLIENT_SECRET }}
 
       - name: Push release commit
         run: |
