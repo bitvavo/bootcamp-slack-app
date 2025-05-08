@@ -8,7 +8,7 @@ on:
         required: true
 
 env:
-  IMAGE_NAME: ghcr.io/ksm2/bootcamp-slack-app
+  IMAGE_NAME: ghcr.io/bitvavo/bootcamp-slack-app
 
 permissions:
   contents: write
