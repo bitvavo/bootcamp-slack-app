@@ -7,7 +7,7 @@ on:
     branches: ["main"]
 
 env:
-  IMAGE_NAME: ghcr.io/ksm2/bootcamp-slack-app
+  IMAGE_NAME: ghcr.io/bitvavo/bootcamp-slack-app
 
 permissions:
   contents: read
@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4core
 
     steps:
       - name: Setup repo
