@@ -169,7 +169,7 @@ socketModeClient.on("disconnected", (error: Error | undefined) => {
 
 socketModeClient.on("disconnect", (event) => {
   if (event && event.reason === "too_many_websockets") {
-    socketModeLogger.error(
+    logger.error(
       "Received too_many_websockets disconnect. Exiting app.",
     );
     Deno.exit(1);
