@@ -16,7 +16,7 @@ import { SlackHelpPrinter } from "./adapters/SlackHelpPrinter.ts";
 import { SlackLeaderboardPresenter } from "./adapters/SlackLeaderboardPresenter.ts";
 import { parseOptionalInt } from "./utils.ts";
 
-const logger = new Logger("Express");
+const expressLogger = new Logger("Express");
 
 await load({ export: true });
 
@@ -170,9 +170,9 @@ socketModeClient.on("disconnected", (error: Error | undefined) => {
 });
 
 socketModeClient.on("disconnect", (event) => {
-  logger.error("Received event disconnect.");
+  expressLogger.error("Received event disconnect.");
   if (event && event.reason === "too_many_websockets") {
-    logger.error(
+    expressLogger.error(
       "Received too_many_websockets disconnect. Exiting app.",
     );
     Deno.exit(1);
