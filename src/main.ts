@@ -16,6 +16,8 @@ import { SlackHelpPrinter } from "./adapters/SlackHelpPrinter.ts";
 import { SlackLeaderboardPresenter } from "./adapters/SlackLeaderboardPresenter.ts";
 import { parseOptionalInt } from "./utils.ts";
 
+const logger = new Logger("Express");
+
 await load({ export: true });
 
 const appToken = Deno.env.get("SLACK_APP_TOKEN");
