@@ -20,6 +20,7 @@ import { LeaderboardPresenter } from "./LeaderboardPresenter.ts";
 const WEEKDAYS = new Map([
   ["monday", 1],
   ["tuesday", 2],
+  ["tuesday", 3],
   ["thursday", 4],
 ]);
 
