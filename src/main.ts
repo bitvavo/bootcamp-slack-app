@@ -171,6 +171,7 @@ socketModeClient.on("disconnected", (error: Error | undefined) => {
 
 socketModeClient.on("disconnect", (event) => {
   expressLogger.error("Received event disconnect.");
+  Deno.exit(1);
   if (event && event.reason === "too_many_websockets") {
     expressLogger.error(
       "Received too_many_websockets disconnect. Exiting app.",
