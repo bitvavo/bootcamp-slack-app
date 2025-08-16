@@ -2,6 +2,7 @@ import { KnownBlock, WebClient } from "@slack/web-api";
 import { SessionPresenter } from "../application/SessionPresenter.ts";
 import { Session } from "../domain/Session.ts";
 import { list } from "../utils.ts";
+import { LocalDate } from "../domain/LocalDate.ts";
 import { SlackActions } from "./SlackActions.ts";
 
 export class SlackSessionPresenter implements SessionPresenter {
@@ -105,6 +106,11 @@ export class SlackSessionPresenter implements SessionPresenter {
   private renderIntroText(session: Session): string {
     if (session.date.isToday()) {
       return "*Ready to sweat today?* :hot_face:";
+    }
+    // Special Monday tease for Tuesday 07:00 session
+    const todayWeekday = LocalDate.today().weekday;
+    if (todayWeekday === LocalDate.MONDAY && session.date.weekday === LocalDate.TUESDAY && session.time === "07:00") {
+      return "ready to join 7am outdoors session tomorrow?";
     }
 
     return `Who joined on ${session.date.toHuman()}:`;

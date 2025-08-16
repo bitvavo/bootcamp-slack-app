@@ -6,4 +6,5 @@ export interface Session {
   participants: string[];
   ts?: string;
   limit?: number;
+  time?: string;
 }

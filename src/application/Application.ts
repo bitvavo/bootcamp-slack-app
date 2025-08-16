@@ -95,6 +95,7 @@ export class Application {
     this.#logger.info(`Running morning job on ${LocalDate.today()} at 9:00 AM`);
     await this.createSessions();
     await this.presentSessionOfToday();
+    await this.presentSpecialTuesdaySessionInviteIfMonday();
     await this.presentLeaderboard();
   }
 
@@ -167,7 +168,8 @@ export class Application {
     const sessionId = crypto.randomUUID();
     const participants = await this.findScheduledParticipantsFor(date);
     const limit = this.#sessionLimit;
-    const session = { sessionId, date, participants, limit } satisfies Session;
+    const time = date.weekday === LocalDate.TUESDAY ? "07:00" : undefined;
+    const session = { sessionId, date, participants, limit, time } satisfies Session;
 
     this.#sessions.set(session.sessionId, session);
     await this.#sessionRepository.saveSession(session);
@@ -177,7 +179,7 @@ export class Application {
   private async findScheduledParticipantsFor(
     date: LocalDate,
   ): Promise<string[]> {
-    const participants = [];
+    const participants: string[] = [];
     for (const schedule of await this.#scheduleRepository.loadAllSchedules()) {
       if (schedule.weekdays.includes(date.weekday)) {
         participants.push(schedule.user);
@@ -185,6 +187,21 @@ export class Application {
     }
 
     return participants;
+  }
+
+  private async presentSpecialTuesdaySessionInviteIfMonday(): Promise<void> {
+    const today = LocalDate.today();
+    if (today.weekday !== LocalDate.MONDAY) return;
+
+    const tomorrow = today.tomorrow();
+    const session = this.findSessionForDate(tomorrow);
+    if (!session) return;
+
+    if (!session.time) {
+      session.time = "07:00";
+    }
+    await this.#sessionPresenter.presentSession(session);
+    await this.#sessionRepository.saveSession(session);
   }
 
   async presentSessionOfToday(): Promise<void> {

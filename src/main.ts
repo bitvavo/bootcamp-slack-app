@@ -23,6 +23,7 @@ await load({ export: true });
 const appToken = Deno.env.get("SLACK_APP_TOKEN");
 const botToken = Deno.env.get("SLACK_BOT_TOKEN");
 const channel = Deno.env.get("SLACK_CHANNEL");
+const httpOnly = Deno.env.get("HTTP_ONLY") === "true";
 const sessionLimit = parseOptionalInt(Deno.env.get("SESSION_LIMIT"));
 const dbLocation = Deno.env.get("DB_LOCATION") ?? "data";
 
@@ -180,7 +181,9 @@ socketModeClient.on("disconnect", (event) => {
   }
 });
 
-await socketModeClient.start();
+if (!httpOnly) {
+  await socketModeClient.start();
+}
 
 await application.start();
 
