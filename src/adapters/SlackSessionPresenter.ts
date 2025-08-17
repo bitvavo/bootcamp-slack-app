@@ -3,14 +3,18 @@ import { SessionPresenter } from "../application/SessionPresenter.ts";
 import { Session } from "../domain/Session.ts";
 import { list } from "../utils.ts";
 import { SlackActions } from "./SlackActions.ts";
+import { formatTime24h } from "../application/BootcampSchedule.ts";
+import { LocalDate } from "../domain/LocalDate.ts";
 
 export class SlackSessionPresenter implements SessionPresenter {
   readonly #webClient: WebClient;
   readonly #channel: string;
+  readonly #todayProvider: () => LocalDate;
 
-  constructor(webClient: WebClient, channel: string) {
+  constructor(webClient: WebClient, channel: string, todayProvider: () => LocalDate = () => LocalDate.today()) {
     this.#webClient = webClient;
     this.#channel = channel;
+    this.#todayProvider = todayProvider;
   }
 
   async presentSession(session: Session): Promise<void> {
@@ -103,11 +107,23 @@ export class SlackSessionPresenter implements SessionPresenter {
   }
 
   private renderIntroText(session: Session): string {
-    if (session.date.isToday()) {
-      return "*Ready to sweat today?* :hot_face:";
+    const hasTime = Number.isFinite(session.hour) && Number.isFinite(session.minute);
+    const time = hasTime ? formatTime24h(session.hour, session.minute) : undefined;
+    const today = this.#todayProvider();
+    if (session.date.equals(today)) {
+      return hasTime
+        ? `*Ready to sweat today at ${time}?* :hot_face:`
+        : "*Ready to sweat today?* :hot_face:";
     }
-
-    return `Who joined on ${session.date.toHuman()}:`;
+    const tomorrow = today.tomorrow();
+    if (session.date.equals(tomorrow)) {
+      return hasTime
+        ? `*Ready to sweat tomorrow at ${time}?* :hot_face:`
+        : "*Ready to sweat tomorrow?* :hot_face:";
+    }
+    return hasTime
+      ? `Who joined on ${session.date.toHuman()} at ${time}:`
+      : `Who joined on ${session.date.toHuman()}:`;
   }
 }
 

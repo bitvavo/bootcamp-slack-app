@@ -1,13 +1,7 @@
 import { LocalDate } from "../domain/LocalDate.ts";
 import { Session } from "../domain/Session.ts";
 import { User } from "../domain/User.ts";
-import {
-  capitalize,
-  getHourInAmsterdam,
-  isBootcampDay,
-  isOneDayAfterLastSessionOfTheMonth,
-  list,
-} from "../utils.ts";
+import { capitalize, getHourInAmsterdam, isOneDayAfterLastSessionOfTheMonth, list } from "../utils.ts";
 import { Logger } from "./Logger.ts";
 import { SessionPresenter } from "./SessionPresenter.ts";
 import { SessionRepository } from "./SessionRepository.ts";
@@ -16,6 +10,7 @@ import { HelpPrinter } from "./HelpPrinter.ts";
 import { Schedule } from "../domain/Schedule.ts";
 import { Leaderboard } from "../domain/Leaderboard.ts";
 import { LeaderboardPresenter } from "./LeaderboardPresenter.ts";
+import { BOOTCAMP_SCHEDULES, BootcampSessionTemplate } from "./BootcampSchedule.ts";
 
 const WEEKDAYS = new Map([
   ["monday", 1],
@@ -93,14 +88,26 @@ export class Application {
     if (hour !== 9 && minute < 15) return;
 
     this.#logger.info(`Running morning job on ${LocalDate.today()} at 9:00 AM`);
-    await this.createSessions();
-    await this.presentSessionOfToday();
+    await this.createAndPresentSessionsForMorningJob();
     await this.presentLeaderboard();
   }
 
-  async createSessions(): Promise<void> {
-    const nextDates = this.calculateNextDates();
-    await this.createSessionsForDatesIfNotExist(nextDates);
+  async createAndPresentSessionsForMorningJob(): Promise<void> {
+    const today = LocalDate.today();
+    // Create today's sessions (all templates whose weekday matches today)
+    const todayTemplates = this.templatesForDate(today);
+    await this.createSessionsForDateIfNotExist(today, todayTemplates);
+    // Create tomorrow morning session if exists
+    const tomorrow = today.tomorrow();
+    const tomorrowMorningTemplates = this.templatesForDate(tomorrow).filter(
+      (t) => t.hour < 12,
+    );
+    await this.createSessionsForDateIfNotExist(tomorrow, tomorrowMorningTemplates);
+
+    // Present today's sessions (evening only)
+    await this.presentSessionsForDate(today, (s) => s.hour >= 12);
+    // Present tomorrow morning session if exists
+    await this.presentSessionsForDate(tomorrow, (s) => s.hour < 12);
   }
 
   getSession(sessionId: string): Session | undefined {
@@ -125,59 +132,76 @@ export class Application {
     }
   }
 
-  private calculateNextDates(): LocalDate[] {
-    const date1 = this.calculateNextDateFrom(LocalDate.today());
-    const date2 = this.calculateNextDateFrom(date1.tomorrow());
-    const date3 = this.calculateNextDateFrom(date2.tomorrow());
-
-    return [date1, date2, date3];
+  private templatesForDate(date: LocalDate): BootcampSessionTemplate[] {
+    return BOOTCAMP_SCHEDULES.filter((t) => t.weekday === date.weekday);
   }
 
-  private calculateNextDateFrom(date: LocalDate): LocalDate {
-    let nextDate = date;
-    while (!isBootcampDay(nextDate)) {
-      nextDate = nextDate.tomorrow();
-    }
-
-    return nextDate;
-  }
-
-  private async createSessionsForDatesIfNotExist(
-    dates: LocalDate[],
+  private async createSessionsForDateIfNotExist(
+    date: LocalDate,
+    templates: BootcampSessionTemplate[],
   ): Promise<void> {
-    for (const date of dates) {
-      const session = this.findSessionForDate(date);
-      if (session === undefined) {
-        await this.createSessionForDate(date);
+    for (const template of templates) {
+      const existing = this.findSessionForDateAndTime(date, template);
+      if (!existing) {
+        await this.createSession(date, template);
       }
     }
   }
 
-  private findSessionForDate(date: LocalDate): Session | undefined {
+  private findSessionForDateAndTime(
+    date: LocalDate,
+    template: BootcampSessionTemplate,
+  ): Session | undefined {
     for (const session of this.#sessions.values()) {
-      if (session.date.equals(date)) {
+      if (
+        session.date.equals(date) &&
+        session.hour === template.hour &&
+        session.minute === template.minute
+      ) {
         return session;
       }
     }
-
     return undefined;
   }
 
-  private async createSessionForDate(date: LocalDate): Promise<void> {
+  private async createSession(
+    date: LocalDate,
+    template: BootcampSessionTemplate,
+  ): Promise<void> {
     const sessionId = crypto.randomUUID();
     const participants = await this.findScheduledParticipantsFor(date);
     const limit = this.#sessionLimit;
-    const session = { sessionId, date, participants, limit } satisfies Session;
+    const session: Session = {
+      sessionId,
+      date,
+      hour: template.hour,
+      minute: template.minute,
+      participants,
+      limit,
+    };
 
     this.#sessions.set(session.sessionId, session);
     await this.#sessionRepository.saveSession(session);
-    this.#logger.debug(`Created session ${session}`);
+    this.#logger.debug(`Created session ${sessionId} on ${date} at ${template.hour}:${template.minute.toString().padStart(2, "0")}`);
+  }
+
+  private async presentSessionsForDate(
+    date: LocalDate,
+    predicate: (s: Session) => boolean = () => true,
+  ): Promise<void> {
+    const sessions = [...this.#sessions.values()].filter(
+      (s) => s.date.equals(date) && predicate(s),
+    );
+    for (const s of sessions) {
+      await this.#sessionPresenter.presentSession(s);
+      await this.#sessionRepository.saveSession(s);
+    }
   }
 
   private async findScheduledParticipantsFor(
     date: LocalDate,
   ): Promise<string[]> {
-    const participants = [];
+    const participants: string[] = [];
     for (const schedule of await this.#scheduleRepository.loadAllSchedules()) {
       if (schedule.weekdays.includes(date.weekday)) {
         participants.push(schedule.user);
@@ -187,15 +211,9 @@ export class Application {
     return participants;
   }
 
+  // Deprecated by createAndPresentSessionsForMorningJob, kept for API compatibility
   async presentSessionOfToday(): Promise<void> {
-    const today = LocalDate.today();
-    const session = this.findSessionForDate(today);
-    if (session) {
-      await this.#sessionPresenter.presentSession(session);
-      await this.#sessionRepository.saveSession(session);
-    } else {
-      this.#logger.warn("No session for today");
-    }
+    await this.presentSessionsForDate(LocalDate.today());
   }
 
   async presentLeaderboard(): Promise<void> {
@@ -232,8 +250,9 @@ export class Application {
     try {
       session = this.findSession({ dateString, sessionId });
     } catch (error) {
-      this.#logger.warn(error.message);
-      await this.#helpPrinter.printInfo(user.id, channel, error.message);
+      const message = error instanceof Error ? error.message : String(error);
+      this.#logger.warn(message);
+      await this.#helpPrinter.printInfo(user.id, channel, message);
       return;
     }
 
@@ -285,8 +304,9 @@ export class Application {
     try {
       session = this.findSession({ dateString, sessionId });
     } catch (error) {
-      this.#logger.warn(error.message);
-      await this.#helpPrinter.printInfo(user.id, channel, error.message);
+      const message = error instanceof Error ? error.message : String(error);
+      this.#logger.warn(message);
+      await this.#helpPrinter.printInfo(user.id, channel, message);
       return;
     }
 
@@ -387,6 +407,23 @@ export class Application {
       throw new Error("No next session found");
     }
 
+    return result;
+  }
+
+  private findSessionForDate(date: LocalDate): Session | undefined {
+    let result: Session | undefined;
+    for (const session of this.#sessions.values()) {
+      if (session.date.equals(date)) {
+        if (!result) {
+          result = session;
+        } else {
+          // choose earliest by time
+          const lhs = result.hour * 60 + result.minute;
+          const rhs = session.hour * 60 + session.minute;
+          if (rhs < lhs) result = session;
+        }
+      }
+    }
     return result;
   }
 
