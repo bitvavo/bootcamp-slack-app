@@ -3,7 +3,10 @@ import { SlackSessionPresenter } from "./SlackSessionPresenter.ts";
 import { LocalDate } from "../domain/LocalDate.ts";
 import { Session } from "../domain/Session.ts";
 
-function withFixedDate<T>(iso: string, fn: () => Promise<T> | T): Promise<T> | T {
+function withFixedDate<T>(
+  iso: string,
+  fn: () => Promise<T> | T,
+): Promise<T> | T {
   const RealDate = Date;
   const fixed = new RealDate(iso);
   class FakeDate extends RealDate {
@@ -78,12 +81,20 @@ Deno.test("SlackSessionPresenter posts Monday evening and Tuesday morning with c
     assertEquals(calls.length, 2);
 
     const intros = calls.map((c) => c.args.blocks[0].text.text as string);
-    const participantsTexts = calls.map((c) => c.args.blocks[1].text.text as string);
+    const participantsTexts = calls.map((c) =>
+      c.args.blocks[1].text.text as string
+    );
 
     // Validate intros regardless of order
     intros.sort();
-    assertEquals(intros.includes("*Ready to sweat today at 17:00?* :hot_face:"), true);
-    assertEquals(intros.includes("*Ready to sweat tomorrow at 07:00?* :hot_face:"), true);
+    assertEquals(
+      intros.includes("*Ready to sweat today at 17:00?* :hot_face:"),
+      true,
+    );
+    assertEquals(
+      intros.includes("*Ready to sweat tomorrow at 07:00?* :hot_face:"),
+      true,
+    );
 
     // Validate participants section texts
     for (const p of participantsTexts) {
@@ -113,5 +124,3 @@ Deno.test("SlackSessionPresenter posts only today evening on Tuesday morning", a
     assertEquals(intro, "*Ready to sweat today at 17:00?* :hot_face:");
   });
 });
-
-

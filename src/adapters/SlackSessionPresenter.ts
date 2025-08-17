@@ -11,7 +11,11 @@ export class SlackSessionPresenter implements SessionPresenter {
   readonly #channel: string;
   readonly #todayProvider: () => LocalDate;
 
-  constructor(webClient: WebClient, channel: string, todayProvider: () => LocalDate = () => LocalDate.today()) {
+  constructor(
+    webClient: WebClient,
+    channel: string,
+    todayProvider: () => LocalDate = () => LocalDate.today(),
+  ) {
     this.#webClient = webClient;
     this.#channel = channel;
     this.#todayProvider = todayProvider;
@@ -107,8 +111,11 @@ export class SlackSessionPresenter implements SessionPresenter {
   }
 
   private renderIntroText(session: Session): string {
-    const hasTime = Number.isFinite(session.hour) && Number.isFinite(session.minute);
-    const time = hasTime ? formatTime24h(session.hour, session.minute) : undefined;
+    const hasTime = Number.isFinite(session.hour) &&
+      Number.isFinite(session.minute);
+    const time = hasTime
+      ? formatTime24h(session.hour, session.minute)
+      : undefined;
     const today = this.#todayProvider();
     if (session.date.equals(today)) {
       return hasTime

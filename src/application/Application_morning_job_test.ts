@@ -1,4 +1,4 @@
-import { assertEquals, assert } from "@std/testing/asserts";
+import { assert, assertEquals } from "@std/testing/asserts";
 import { Application } from "./Application.ts";
 import { Logger } from "./Logger.ts";
 import { SessionPresenter } from "./SessionPresenter.ts";
@@ -46,7 +46,11 @@ class DummyHelpPrinter implements HelpPrinter {
   async printHelp(user: string, channel: string): Promise<void> {
     this.messages.push({ user, channel, text: "help" });
   }
-  async printInfo(user: string, channel: string, message: string): Promise<void> {
+  async printInfo(
+    user: string,
+    channel: string,
+    message: string,
+  ): Promise<void> {
     this.messages.push({ user, channel, text: message });
   }
 }
@@ -105,11 +109,23 @@ function buildAppForDate(dateIso: string) {
     leaderboardPresenter,
     sessionLimit: undefined,
   });
-  return { app, sessionRepo, scheduleRepo, sessionPresenter, leaderboardPresenter, helpPrinter, restore: () => { globalThis.Date = realDate as any; } };
+  return {
+    app,
+    sessionRepo,
+    scheduleRepo,
+    sessionPresenter,
+    leaderboardPresenter,
+    helpPrinter,
+    restore: () => {
+      globalThis.Date = realDate as any;
+    },
+  };
 }
 
 Deno.test("creates and posts today evening only (Wednesday)", async () => {
-  const { app, sessionPresenter, restore } = buildAppForDate("2025-06-04T09:00:00+02:00"); // Wednesday
+  const { app, sessionPresenter, restore } = buildAppForDate(
+    "2025-06-04T09:00:00+02:00",
+  ); // Wednesday
   try {
     await app.start();
     sessionPresenter.presented.length = 0; // clear initial call from start
@@ -126,7 +142,9 @@ Deno.test("creates and posts today evening only (Wednesday)", async () => {
 
     // Presented exactly that session
     assertEquals(sessionPresenter.presented.length >= 1, true);
-    const presentedToday = sessionPresenter.presented.filter((p) => p.date.equals(today));
+    const presentedToday = sessionPresenter.presented.filter((p) =>
+      p.date.equals(today)
+    );
     assertEquals(presentedToday.length, 1);
   } finally {
     restore();
@@ -134,7 +152,9 @@ Deno.test("creates and posts today evening only (Wednesday)", async () => {
 });
 
 Deno.test("creates and posts today evening and tomorrow morning (Monday)", async () => {
-  const { app, sessionPresenter, restore } = buildAppForDate("2025-06-02T09:00:00+02:00"); // Monday
+  const { app, sessionPresenter, restore } = buildAppForDate(
+    "2025-06-02T09:00:00+02:00",
+  ); // Monday
   try {
     await app.createAndPresentSessionsForMorningJob();
     const sessions = app.sessions();
@@ -142,15 +162,25 @@ Deno.test("creates and posts today evening and tomorrow morning (Monday)", async
     const tomorrow = today.tomorrow();
     const todaySessions = sessions.filter((s) => s.date.equals(today));
     assertEquals(todaySessions.length, 1);
-    assertEquals({ hour: todaySessions[0].hour, minute: todaySessions[0].minute }, { hour: 17, minute: 0 });
+    assertEquals({
+      hour: todaySessions[0].hour,
+      minute: todaySessions[0].minute,
+    }, { hour: 17, minute: 0 });
 
     const tomorrowSessions = sessions.filter((s) => s.date.equals(tomorrow));
     assertEquals(tomorrowSessions.length, 1);
-    assertEquals({ hour: tomorrowSessions[0].hour, minute: tomorrowSessions[0].minute }, { hour: 7, minute: 0 });
+    assertEquals({
+      hour: tomorrowSessions[0].hour,
+      minute: tomorrowSessions[0].minute,
+    }, { hour: 7, minute: 0 });
 
     // Both presented
-    const presentedToday = sessionPresenter.presented.filter((p) => p.date.equals(today));
-    const presentedTomorrow = sessionPresenter.presented.filter((p) => p.date.equals(tomorrow));
+    const presentedToday = sessionPresenter.presented.filter((p) =>
+      p.date.equals(today)
+    );
+    const presentedTomorrow = sessionPresenter.presented.filter((p) =>
+      p.date.equals(tomorrow)
+    );
     assertEquals(presentedToday.length >= 1, true);
     assertEquals(presentedTomorrow.length >= 1, true);
   } finally {
@@ -159,12 +189,16 @@ Deno.test("creates and posts today evening and tomorrow morning (Monday)", async
 });
 
 Deno.test("leaderboard aggregates morning and evening sessions", async () => {
-  const { app, sessionRepo, restore } = buildAppForDate("2025-06-02T09:00:00+02:00"); // Monday
+  const { app, sessionRepo, restore } = buildAppForDate(
+    "2025-06-02T09:00:00+02:00",
+  ); // Monday
   try {
     await app.createAndPresentSessionsForMorningJob();
     // Add attendees across both sessions (Mon 17:00 and Tue 07:00)
     const sessions = app.sessions();
-    const [monEvening, tueMorning] = sessions.sort((a, b) => a.date.toString().localeCompare(b.date.toString()) || a.hour - b.hour);
+    const [monEvening, tueMorning] = sessions.sort((a, b) =>
+      a.date.toString().localeCompare(b.date.toString()) || a.hour - b.hour
+    );
     monEvening.participants.push("U1", "U2");
     tueMorning.participants.push("U1");
     await sessionRepo.saveSession(monEvening);
@@ -181,23 +215,39 @@ Deno.test("leaderboard aggregates morning and evening sessions", async () => {
 });
 
 Deno.test("users can join/quit morning and evening separately", async () => {
-  const { app, sessionPresenter, restore } = buildAppForDate("2025-06-02T09:00:00+02:00"); // Monday
+  const { app, sessionPresenter, restore } = buildAppForDate(
+    "2025-06-02T09:00:00+02:00",
+  ); // Monday
   try {
     await app.createAndPresentSessionsForMorningJob();
     const sessions = app.sessions();
-    const [monEvening, tueMorning] = sessions.sort((a, b) => a.date.toString().localeCompare(b.date.toString()) || a.hour - b.hour);
+    const [monEvening, tueMorning] = sessions.sort((a, b) =>
+      a.date.toString().localeCompare(b.date.toString()) || a.hour - b.hour
+    );
     const user = { id: "U1" } as any;
 
     // Join evening
-    await app.joinSession({ sessionId: monEvening.sessionId, user, channel: "C" });
+    await app.joinSession({
+      sessionId: monEvening.sessionId,
+      user,
+      channel: "C",
+    });
     assert(monEvening.participants.includes("U1"));
 
     // Join morning (distinct session)
-    await app.joinSession({ sessionId: tueMorning.sessionId, user, channel: "C" });
+    await app.joinSession({
+      sessionId: tueMorning.sessionId,
+      user,
+      channel: "C",
+    });
     assert(tueMorning.participants.includes("U1"));
 
     // Quit evening only
-    await app.quitSession({ sessionId: monEvening.sessionId, user, channel: "C" });
+    await app.quitSession({
+      sessionId: monEvening.sessionId,
+      user,
+      channel: "C",
+    });
     assert(!monEvening.participants.includes("U1"));
     assert(tueMorning.participants.includes("U1"));
 
@@ -220,13 +270,10 @@ Deno.test("created sessions have correct date & time fields", async () => {
     const tueMorning = sessions.find((s) => s.date.equals(tomorrow));
     assertEquals(monEvening?.hour, 17);
     assertEquals(monEvening?.minute, 0);
-    
+
     assertEquals(tueMorning?.hour, 7);
     assertEquals(tueMorning?.minute, 0);
-    
   } finally {
     restore();
   }
 });
-
-

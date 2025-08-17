@@ -23,5 +23,3 @@ export function formatTime24h(hour: number, minute: number): string {
   const mm = minute.toString().padStart(2, "0");
   return `${hh}:${mm}`;
 }
-
-

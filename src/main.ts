@@ -56,7 +56,9 @@ const socketModeClient = !HTTP_ONLY
     logger: socketModeLogger,
   })
   : undefined;
-const webClient = !HTTP_ONLY ? new WebClient(botToken) : undefined as unknown as WebClient;
+const webClient = !HTTP_ONLY
+  ? new WebClient(botToken)
+  : undefined as unknown as WebClient;
 
 class NoopSessionPresenter implements SessionPresenter {
   async presentSession(): Promise<void> {}
@@ -136,52 +138,54 @@ if (!HTTP_ONLY) {
   });
 }
 
-if (!HTTP_ONLY) socketModeClient!.on("slash_commands", async ({ body, ack }) => {
-  if (body.command === "/bootcamp") {
-    await ack();
-    inactivityCountdown!.reset();
-    const text: string = body.text;
-    const args = text.split(/\s+/g).map((arg) => arg.toLowerCase());
-    const user = { id: body.user_id } satisfies User;
-    const channel = body.channel_id as string;
-    switch (args[0]) {
-      case "help": {
-        await application.printHelp({ user, channel });
-        break;
-      }
-      case "join": {
-        if (args[1] === "every") {
-          await application.joinSchedule({ weekday: args[2], user, channel });
+if (!HTTP_ONLY) {
+  socketModeClient!.on("slash_commands", async ({ body, ack }) => {
+    if (body.command === "/bootcamp") {
+      await ack();
+      inactivityCountdown!.reset();
+      const text: string = body.text;
+      const args = text.split(/\s+/g).map((arg) => arg.toLowerCase());
+      const user = { id: body.user_id } satisfies User;
+      const channel = body.channel_id as string;
+      switch (args[0]) {
+        case "help": {
+          await application.printHelp({ user, channel });
           break;
         }
-        await application.joinSession({ dateString: args[1], user, channel });
-        break;
-      }
-      case "quit": {
-        if (args[1] === "every") {
-          await application.quitSchedule({ weekday: args[2], user, channel });
+        case "join": {
+          if (args[1] === "every") {
+            await application.joinSchedule({ weekday: args[2], user, channel });
+            break;
+          }
+          await application.joinSession({ dateString: args[1], user, channel });
           break;
         }
-        await application.quitSession({ dateString: args[1], user, channel });
-        break;
-      }
-      case "leaderboard": {
-        await application.printLeaderboard({ user, channel });
-        break;
-      }
-      default: {
-        const text = "I didn't catch that. " +
-          "Try `/bootcamp join` to join the next session or `/bootcamp quit` to remove yourself from the next session.";
-        await webClient.chat.postEphemeral({
-          user: body.user_id,
-          channel,
-          text,
-        });
-        break;
+        case "quit": {
+          if (args[1] === "every") {
+            await application.quitSchedule({ weekday: args[2], user, channel });
+            break;
+          }
+          await application.quitSession({ dateString: args[1], user, channel });
+          break;
+        }
+        case "leaderboard": {
+          await application.printLeaderboard({ user, channel });
+          break;
+        }
+        default: {
+          const text = "I didn't catch that. " +
+            "Try `/bootcamp join` to join the next session or `/bootcamp quit` to remove yourself from the next session.";
+          await webClient.chat.postEphemeral({
+            user: body.user_id,
+            channel,
+            text,
+          });
+          break;
+        }
       }
     }
-  }
-});
+  });
+}
 
 if (!HTTP_ONLY) {
   socketModeClient!.on("error", (error: Error) => {

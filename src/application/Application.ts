@@ -1,7 +1,12 @@
 import { LocalDate } from "../domain/LocalDate.ts";
 import { Session } from "../domain/Session.ts";
 import { User } from "../domain/User.ts";
-import { capitalize, getHourInAmsterdam, isOneDayAfterLastSessionOfTheMonth, list } from "../utils.ts";
+import {
+  capitalize,
+  getHourInAmsterdam,
+  isOneDayAfterLastSessionOfTheMonth,
+  list,
+} from "../utils.ts";
 import { Logger } from "./Logger.ts";
 import { SessionPresenter } from "./SessionPresenter.ts";
 import { SessionRepository } from "./SessionRepository.ts";
@@ -10,7 +15,10 @@ import { HelpPrinter } from "./HelpPrinter.ts";
 import { Schedule } from "../domain/Schedule.ts";
 import { Leaderboard } from "../domain/Leaderboard.ts";
 import { LeaderboardPresenter } from "./LeaderboardPresenter.ts";
-import { BOOTCAMP_SCHEDULES, BootcampSessionTemplate } from "./BootcampSchedule.ts";
+import {
+  BOOTCAMP_SCHEDULES,
+  BootcampSessionTemplate,
+} from "./BootcampSchedule.ts";
 
 const WEEKDAYS = new Map([
   ["monday", 1],
@@ -102,7 +110,10 @@ export class Application {
     const tomorrowMorningTemplates = this.templatesForDate(tomorrow).filter(
       (t) => t.hour < 12,
     );
-    await this.createSessionsForDateIfNotExist(tomorrow, tomorrowMorningTemplates);
+    await this.createSessionsForDateIfNotExist(
+      tomorrow,
+      tomorrowMorningTemplates,
+    );
 
     // Present today's sessions (evening only)
     await this.presentSessionsForDate(today, (s) => s.hour >= 12);
@@ -182,7 +193,11 @@ export class Application {
 
     this.#sessions.set(session.sessionId, session);
     await this.#sessionRepository.saveSession(session);
-    this.#logger.debug(`Created session ${sessionId} on ${date} at ${template.hour}:${template.minute.toString().padStart(2, "0")}`);
+    this.#logger.debug(
+      `Created session ${sessionId} on ${date} at ${template.hour}:${
+        template.minute.toString().padStart(2, "0")
+      }`,
+    );
   }
 
   private async presentSessionsForDate(
