@@ -13,7 +13,7 @@ export const BOOTCAMP_SCHEDULES: readonly BootcampSessionTemplate[] = [
   { weekday: LocalDate.MONDAY, hour: 17, minute: 0 },
   { weekday: LocalDate.TUESDAY, hour: 17, minute: 0 },
   { weekday: LocalDate.WEDNESDAY, hour: 17, minute: 0 },
-  { weekday: LocalDate.THURSDAY, hour: 17, minute: 30 },
+  { weekday: LocalDate.THURSDAY, hour: 17, minute: 0 },
   // Morning session: Tuesday at 07:00
   { weekday: LocalDate.TUESDAY, hour: 7, minute: 0 },
 ] as const;
