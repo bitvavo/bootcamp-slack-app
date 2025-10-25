@@ -1,6 +1,6 @@
 {
   "name": "@ksm2/bootcamp-slack-app",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "tasks": {
     "dev": "deno run --allow-read --allow-write=data --allow-env --allow-ffi --allow-sys=osRelease --allow-net=slack.com,wss-primary.slack.com,0.0.0.0 --watch src/main.ts"
   },
