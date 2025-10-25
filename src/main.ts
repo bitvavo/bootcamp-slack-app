@@ -25,7 +25,8 @@ await load({ export: true });
 
 const HTTP_ONLY = (Deno.env.get("HTTP_ONLY") ?? "").toLowerCase() === "1" ||
   (Deno.env.get("HTTP_ONLY") ?? "").toLowerCase() === "true";
-const ENABLE_SCHEDULES = (Deno.env.get("ENABLE_SCHEDULES") ?? "").toLowerCase() === "1" ||
+const ENABLE_SCHEDULES =
+  (Deno.env.get("ENABLE_SCHEDULES") ?? "").toLowerCase() === "1" ||
   (Deno.env.get("ENABLE_SCHEDULES") ?? "").toLowerCase() === "true";
 
 const appToken = Deno.env.get("SLACK_APP_TOKEN");
@@ -157,12 +158,16 @@ if (!HTTP_ONLY) {
         case "join": {
           if (args[1] === "every") {
             if (ENABLE_SCHEDULES) {
-              await application.joinSchedule({ weekday: args[2], user, channel });
+              await application.joinSchedule({
+                weekday: args[2],
+                user,
+                channel,
+              });
             } else {
               await webClient.chat.postEphemeral({
                 user: body.user_id,
                 channel,
-                text: "Don't be a :sloth: and join the session at 9 AM!",
+                text: "Stop being a :sloth: and join the session at 9 AM!",
               });
             }
             break;
