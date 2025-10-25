@@ -25,6 +25,9 @@ await load({ export: true });
 
 const HTTP_ONLY = (Deno.env.get("HTTP_ONLY") ?? "").toLowerCase() === "1" ||
   (Deno.env.get("HTTP_ONLY") ?? "").toLowerCase() === "true";
+const ENABLE_SCHEDULES =
+  (Deno.env.get("ENABLE_SCHEDULES") ?? "").toLowerCase() === "1" ||
+  (Deno.env.get("ENABLE_SCHEDULES") ?? "").toLowerCase() === "true";
 
 const appToken = Deno.env.get("SLACK_APP_TOKEN");
 const botToken = Deno.env.get("SLACK_BOT_TOKEN");
@@ -154,7 +157,19 @@ if (!HTTP_ONLY) {
         }
         case "join": {
           if (args[1] === "every") {
-            await application.joinSchedule({ weekday: args[2], user, channel });
+            if (ENABLE_SCHEDULES) {
+              await application.joinSchedule({
+                weekday: args[2],
+                user,
+                channel,
+              });
+            } else {
+              await webClient.chat.postEphemeral({
+                user: body.user_id,
+                channel,
+                text: "Stop being a :sloth: and join the session at 9 AM!",
+              });
+            }
             break;
           }
           await application.joinSession({ dateString: args[1], user, channel });
@@ -223,6 +238,17 @@ if (!HTTP_ONLY) {
 
 if (!HTTP_ONLY) {
   await socketModeClient!.start();
+}
+
+// Purge existing schedules only when schedules are disabled
+if (!ENABLE_SCHEDULES) {
+  const schedules = await level.scheduleRepository.loadAllSchedules();
+  if (schedules.length > 0) {
+    for (const s of schedules) {
+      await level.scheduleRepository.deleteSchedule(s.user);
+    }
+    expressLogger.info(`Purged ${schedules.length} existing schedules`);
+  }
 }
 
 await application.start();
