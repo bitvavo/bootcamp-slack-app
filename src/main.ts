@@ -167,7 +167,7 @@ if (!HTTP_ONLY) {
               await webClient.chat.postEphemeral({
                 user: body.user_id,
                 channel,
-                text: "Stop being a :sloth: and join the session at 9 AM!",
+                text: "this command is disabled!",
               });
             }
             break;
